@@ -1,0 +1,80 @@
+#!/bin/bash
+
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+PROC_NAME="conf-pull.py"
+cd ${SHELL_FOLDER}
+chmod a+x ${PROC_NAME}
+
+help(){
+    echo "${0} <start|stop|restart|status>"
+    exit 1
+}
+
+install_crontab(){
+    echo "$(date) install crontab ..."
+    crontab -l > ${SHELL_FOLDER}/crontab.bak
+    sed -i -e "/${PROC_NAME}/d" ${SHELL_FOLDER}/crontab.bak
+    echo "* * * * * python ${SHELL_FOLDER}/${PROC_NAME}" >> ${SHELL_FOLDER}/crontab.bak
+    echo "* * * * * sleep 20 && python ${SHELL_FOLDER}/${PROC_NAME}" >> ${SHELL_FOLDER}/crontab.bak
+    echo "* * * * * sleep 40 && python ${SHELL_FOLDER}/${PROC_NAME}" >> ${SHELL_FOLDER}/crontab.bak
+    crontab ${SHELL_FOLDER}/crontab.bak
+    if [ $? -ne 0 ]
+    then
+        echo "$(date) install ${PROC_NAME} failed!"
+        exit 1
+    else
+        echo "$(date) install ${PROC_NAME} success!"
+    fi
+    \rm -f ${SHELL_FOLDER}/crontab.bak
+    #show result
+    crontab -l
+    return 0
+}
+
+uninstall_crontab(){
+    echo "$(date) uninstall ${PROC_NAME} ..."
+    crontab -l > ${SHELL_FOLDER}/crontab.bak
+    sed -i -e "/${PROC_NAME}/d" ${SHELL_FOLDER}/crontab.bak
+    crontab ${SHELL_FOLDER}/crontab.bak
+    if [ $? -ne 0 ]
+    then
+        echo "$(date) uninstall ${PROC_NAME} failed!"
+        exit 1
+    else
+        echo "$(date) uninstall ${PROC_NAME} success!"
+    fi
+    \rm -f ${SHELL_FOLDER}/crontab.bak
+    #show result
+    crontab -l
+    return 0
+}
+
+start(){
+    install_crontab
+}
+
+stop(){
+    uninstall_crontab
+}
+
+status(){
+    crontab -l
+}
+
+case "${1}" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop && start
+        ;;
+    *)
+        help
+        ;;
+esac
